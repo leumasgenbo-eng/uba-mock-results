@@ -27,6 +27,8 @@ const App: React.FC = () => {
     return saved ? JSON.parse(saved) : DEFAULT_SETTINGS;
   });
 
+  const [zoomLevel, setZoomLevel] = useState(1.0);
+
   const handleSettingChange = (key: keyof GlobalSettings, value: string) => {
     setSettings(prev => ({ ...prev, [key]: value }));
   };
@@ -34,6 +36,13 @@ const App: React.FC = () => {
   const handleSave = () => {
     localStorage.setItem('uba_app_settings', JSON.stringify(settings));
     alert("Changes saved successfully!");
+  };
+
+  const adjustZoom = (delta: number) => {
+    setZoomLevel(prev => {
+      const next = prev + delta;
+      return Math.max(0.5, Math.min(2.0, parseFloat(next.toFixed(1))));
+    });
   };
 
   // Calculate stats and process data
@@ -55,11 +64,11 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 font-sans">
+    <div className="min-h-screen bg-gray-100 font-sans flex flex-col">
       {/* Navigation / Toolbar */}
-      <div className="no-print bg-blue-900 text-white p-4 sticky top-0 z-50 shadow-md flex justify-between items-center">
+      <div className="no-print bg-blue-900 text-white p-4 sticky top-0 z-50 shadow-md flex justify-between items-center flex-wrap gap-2">
         <div className="flex items-center gap-4">
-           <h1 className="font-bold text-xl hidden md:block">UBA Report System</h1>
+           <h1 className="font-bold text-xl hidden lg:block">UBA Report System</h1>
            <div className="flex bg-blue-800 rounded p-1 text-sm md:text-base">
              <button 
                onClick={() => setViewMode('master')}
@@ -74,7 +83,17 @@ const App: React.FC = () => {
                Individual Reports
              </button>
            </div>
+           
+           {/* Zoom Controls */}
+           <div className="flex items-center bg-blue-800 rounded p-1 text-sm border border-blue-700">
+             <span className="text-xs text-blue-300 px-2 uppercase font-bold hidden sm:inline">Zoom:</span>
+             <button onClick={() => adjustZoom(-0.1)} className="px-3 text-blue-200 hover:text-white font-bold text-lg leading-none" title="Zoom Out">-</button>
+             <span className="w-12 text-center text-white font-mono">{Math.round(zoomLevel * 100)}%</span>
+             <button onClick={() => adjustZoom(0.1)} className="px-3 text-blue-200 hover:text-white font-bold text-lg leading-none" title="Zoom In">+</button>
+             <button onClick={() => setZoomLevel(1.0)} className="px-2 text-blue-300 hover:text-white text-xs border-l border-blue-600 ml-1" title="Reset Zoom">R</button>
+           </div>
         </div>
+
         <div className="flex gap-2 md:gap-4">
            <button
              onClick={handleSave}
@@ -82,7 +101,7 @@ const App: React.FC = () => {
              title="Save current settings to browser storage"
            >
              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
-             <span className="hidden md:inline">Save Changes</span>
+             <span className="hidden md:inline">Save</span>
            </button>
            <button 
              onClick={handlePrint}
@@ -95,29 +114,37 @@ const App: React.FC = () => {
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="p-4 md:p-8">
-        {viewMode === 'master' ? (
-          <MasterSheet 
-            students={processedStudents} 
-            stats={stats} 
-            settings={settings}
-            onSettingChange={handleSettingChange}
-          />
-        ) : (
-          <div className="flex flex-col gap-8 print:gap-0">
-            {processedStudents.map((student) => (
-              <ReportCard 
-                key={student.id} 
-                student={student} 
-                stats={stats}
+      {/* Main Content with Zoom */}
+      <div className="flex-1 overflow-auto bg-gray-100 relative">
+        <div 
+            style={{ 
+                transform: `scale(${zoomLevel})`, 
+                transformOrigin: 'top center',
+            }}
+            className="p-4 md:p-8 transition-transform duration-200 ease-linear origin-top"
+        >
+            {viewMode === 'master' ? (
+            <MasterSheet 
+                students={processedStudents} 
+                stats={stats} 
                 settings={settings}
                 onSettingChange={handleSettingChange}
-                classAverageAggregate={classAvgAggregate}
-              />
-            ))}
-          </div>
-        )}
+            />
+            ) : (
+            <div className="flex flex-col gap-8 print:gap-0 items-center">
+                {processedStudents.map((student) => (
+                <ReportCard 
+                    key={student.id} 
+                    student={student} 
+                    stats={stats}
+                    settings={settings}
+                    onSettingChange={handleSettingChange}
+                    classAverageAggregate={classAvgAggregate}
+                />
+                ))}
+            </div>
+            )}
+        </div>
       </div>
     </div>
   );
