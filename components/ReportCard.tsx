@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { ProcessedStudent, GlobalSettings, ClassStatistics } from '../types';
 import EditableField from './EditableField';
 
@@ -11,58 +11,93 @@ interface ReportCardProps {
 }
 
 const ReportCard: React.FC<ReportCardProps> = ({ student, stats, settings, onSettingChange, classAverageAggregate }) => {
+  const [isGenerating, setIsGenerating] = useState(false);
+
   // Sort subjects by score descending for the main table as requested ("Arrange in order the best performing subject")
   const sortedSubjects = [...student.subjects].sort((a, b) => b.score - a.score);
 
-  const generateShareText = () => {
-    const header = `${settings.schoolName}\n${settings.examTitle}\nTerm: ${settings.termInfo} | Year: ${settings.academicYear}`;
-    const studentInfo = `Name: ${student.name}\nID: ${student.id}\nClass: Basic Nine (9)`;
+  const handleSharePDF = async () => {
+    setIsGenerating(true);
+    const element = document.getElementById(`report-${student.id}`);
     
-    const subjects = sortedSubjects.map(s => 
-      `${s.subject}: ${s.score} (${s.grade})`
-    ).join('\n');
+    if (!element) {
+      setIsGenerating(false);
+      return;
+    }
 
-    const summary = `Aggregate (Best 6): ${student.bestSixAggregate}\nCategory: ${student.category}\nRemark: ${student.overallRemark}`;
+    // @ts-ignore - html2pdf is loaded via CDN script in index.html
+    if (typeof window.html2pdf === 'undefined') {
+        alert("PDF generator library not loaded. Please refresh the page.");
+        setIsGenerating(false);
+        return;
+    }
 
-    return `${header}\n\n${studentInfo}\n\nSUBJECT RESULTS:\n${subjects}\n\nSUMMARY:\n${summary}`;
-  };
+    const opt = {
+      margin: 0.2, // inches
+      filename: `${student.name.replace(/\s+/g, '_')}_Report.pdf`,
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { scale: 2, useCORS: true },
+      jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
+    };
 
-  const handleWhatsAppShare = () => {
-    const text = generateShareText();
-    // WhatsApp formatting: *bold*
-    const formattedText = text
-      .replace(settings.schoolName, `*${settings.schoolName}*`)
-      .replace('SUBJECT RESULTS:', '*SUBJECT RESULTS:*')
-      .replace('SUMMARY:', '*SUMMARY:*');
-      
-    const url = `https://wa.me/?text=${encodeURIComponent(formattedText)}`;
-    window.open(url, '_blank');
-  };
+    try {
+        // @ts-ignore
+        const pdfWorker = window.html2pdf().set(opt).from(element);
+        
+        // Generate Blob
+        const pdfBlob = await pdfWorker.output('blob');
+        
+        const file = new File([pdfBlob], opt.filename, { type: 'application/pdf' });
 
-  const handleEmailShare = () => {
-    const text = generateShareText();
-    const subject = `Report Card Results - ${student.name}`;
-    const url = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(text)}`;
-    window.open(url, '_blank'); // Using window.open prevents navigating away in some browsers, or triggers default mail client
+        // Try Web Share API
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+            await navigator.share({
+                files: [file],
+                title: `${student.name} Report Card`,
+                text: `Please find attached the report card for ${student.name}.`,
+            });
+        } else {
+            // Fallback to download
+            const url = URL.createObjectURL(pdfBlob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = opt.filename;
+            a.click();
+            URL.revokeObjectURL(url);
+            alert("PDF Downloaded. You can now share this file via WhatsApp or Email.");
+        }
+    } catch (error) {
+        console.error("PDF Generation Error:", error);
+        alert("Error generating PDF. Please try again.");
+    } finally {
+        setIsGenerating(false);
+    }
   };
 
   return (
-    <div className="bg-white p-8 max-w-[210mm] mx-auto min-h-[297mm] border border-gray-200 shadow-sm print:shadow-none print:border-none page-break relative group">
-       {/* Share Buttons - Visible on hover/screen, hidden on print */}
-       <div className="absolute top-2 right-2 flex gap-2 no-print opacity-50 group-hover:opacity-100 transition-opacity">
+    <div 
+        id={`report-${student.id}`}
+        className="bg-white p-8 max-w-[210mm] mx-auto min-h-[297mm] border border-gray-200 shadow-sm print:shadow-none print:border-none page-break relative group"
+    >
+       {/* Share Buttons - Visible on hover/screen, hidden on print/pdf */}
+       <div 
+         data-html2canvas-ignore="true" 
+         className="absolute top-2 right-2 flex gap-2 no-print opacity-50 group-hover:opacity-100 transition-opacity z-10"
+        >
           <button 
-            onClick={handleWhatsAppShare}
-            className="bg-green-500 hover:bg-green-600 text-white p-2 rounded-full shadow-lg"
-            title="Share via WhatsApp"
+            onClick={handleSharePDF}
+            disabled={isGenerating}
+            className={`${isGenerating ? 'bg-gray-400' : 'bg-red-600 hover:bg-red-700'} text-white px-4 py-2 rounded-full shadow-lg flex items-center gap-2 font-bold text-sm transition-colors`}
+            title="Generate and Share PDF"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
-          </button>
-          <button 
-            onClick={handleEmailShare}
-            className="bg-blue-500 hover:bg-blue-600 text-white p-2 rounded-full shadow-lg"
-            title="Share via Email"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+            {isGenerating ? (
+                <span>Generating...</span>
+            ) : (
+                <>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                    Share PDF
+                </>
+            )}
           </button>
        </div>
 
@@ -203,13 +238,13 @@ const ReportCard: React.FC<ReportCardProps> = ({ student, stats, settings, onSet
 
        {/* Remarks Section */}
        <div className="space-y-4 mb-8">
-          <div className="border border-gray-600 p-3 relative">
-             <span className="absolute -top-3 left-4 bg-white px-2 font-bold text-sm text-gray-700">PERFORMANCE REMARKS</span>
+          <div className="border border-gray-600 p-3 relative bg-red-50">
+             <span className="absolute -top-3 left-4 bg-white px-2 font-bold text-sm text-red-900 border border-red-200">PERFORMANCE ANALYSIS & WEAKNESS</span>
              <EditableField 
                 multiline 
                 value={student.overallRemark} 
                 onChange={() => {}} 
-                className="w-full text-sm mt-1 min-h-[3rem]" 
+                className="w-full text-sm mt-1 min-h-[4rem]" 
              />
           </div>
 
@@ -217,7 +252,7 @@ const ReportCard: React.FC<ReportCardProps> = ({ student, stats, settings, onSet
              <span className="absolute -top-3 left-4 bg-white px-2 font-bold text-sm text-gray-700">RECOMMENDATION & TARGET</span>
              <EditableField 
                 multiline 
-                value="Continue to solve more past questions. Target Grade: Distinction." 
+                value="Review highlighted weak areas. Continue to solve more past questions. Target Grade: Distinction." 
                 onChange={() => {}} 
                 className="w-full text-sm mt-1 min-h-[3rem]" 
              />

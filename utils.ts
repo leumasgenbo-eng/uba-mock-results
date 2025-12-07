@@ -100,8 +100,24 @@ export const processStudentData = (stats: ClassStatistics): ProcessedStudent[] =
     else if (bestSixAggregate <= 36) category = "Pass";
     else category = "Fail";
 
-    // 5. Generate Overall Remark
-    const overallRemark = `Student achieved an aggregate of ${bestSixAggregate}. ${category} performance.`;
+    // 5. Weakness Analysis
+    // Identify subjects with grades 7, 8, 9 (D7, E8, F9)
+    const weakSubjects = computedSubjects.filter(s => s.gradeValue >= 7);
+    const sortedByScoreAsc = [...computedSubjects].sort((a, b) => a.score - b.score);
+    
+    let weaknessAnalysis = "";
+    if (weakSubjects.length > 0) {
+      const names = weakSubjects.map(s => s.subject).join(", ");
+      weaknessAnalysis = `Critical weaknesses observed in: ${names}. These subjects significantly impacted the aggregate. Immediate remedial attention is required to improve understanding in these areas.`;
+    } else {
+      // If no critical failures, identify the lowest 2 performing subjects
+      const lowest = sortedByScoreAsc.slice(0, 2).map(s => s.subject).join(" and ");
+      weaknessAnalysis = `While performance is generally positive, relatively lower scores were recorded in ${lowest}. Strengthening these areas could improve the overall standing further.`;
+    }
+
+    // 6. Generate Overall Remark
+    // Combine Aggregate summary with Weakness Analysis
+    const overallRemark = `Student achieved an aggregate of ${bestSixAggregate} (${category}). ${weaknessAnalysis}`;
 
     return {
       id: student.id,
@@ -112,6 +128,7 @@ export const processStudentData = (stats: ClassStatistics): ProcessedStudent[] =
       bestCoreSubjects: best4Cores,
       bestElectiveSubjects: best2Electives,
       overallRemark,
+      weaknessAnalysis,
       category,
       rank: 0 // Will set later
     };

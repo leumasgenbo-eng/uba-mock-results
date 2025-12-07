@@ -26,6 +26,7 @@ export interface ProcessedStudent {
   bestCoreSubjects: ComputedSubject[];
   bestElectiveSubjects: ComputedSubject[];
   overallRemark: string;
+  weaknessAnalysis: string;
   category: string;
   rank: number;
 }
