@@ -31,7 +31,7 @@ const MasterSheet: React.FC<MasterSheetProps> = ({ students, stats, settings, on
     <div className="bg-white p-4 print:p-0 min-h-screen">
       <div className="text-center mb-6">
         <h1 className="text-3xl font-bold uppercase">
-          <EditableField value={settings.schoolName} onChange={(v) => onSettingChange('schoolName', v)} className="text-center" />
+          <EditableField value={settings.schoolName} onChange={(v) => onSettingChange('schoolName', v)} className="text-center w-full" />
         </h1>
         <div className="flex justify-center gap-4 text-xs font-semibold text-gray-600 mb-2">
             <div className="flex gap-1">
@@ -45,7 +45,7 @@ const MasterSheet: React.FC<MasterSheetProps> = ({ students, stats, settings, on
             </div>
           </div>
         <h2 className="text-xl font-semibold uppercase text-gray-700">
-           <EditableField value={settings.examTitle} onChange={(v) => onSettingChange('examTitle', v)} className="text-center" />
+           <EditableField value={settings.examTitle} onChange={(v) => onSettingChange('examTitle', v)} className="text-center w-full" />
         </h2>
         <h3 className="text-lg">MASTER BROAD SHEET</h3>
       </div>
