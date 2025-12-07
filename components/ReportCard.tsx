@@ -14,13 +14,74 @@ const ReportCard: React.FC<ReportCardProps> = ({ student, stats, settings, onSet
   // Sort subjects by score descending for the main table as requested ("Arrange in order the best performing subject")
   const sortedSubjects = [...student.subjects].sort((a, b) => b.score - a.score);
 
+  const generateShareText = () => {
+    const header = `${settings.schoolName}\n${settings.examTitle}\nTerm: ${settings.termInfo} | Year: ${settings.academicYear}`;
+    const studentInfo = `Name: ${student.name}\nID: ${student.id}\nClass: Basic Nine (9)`;
+    
+    const subjects = sortedSubjects.map(s => 
+      `${s.subject}: ${s.score} (${s.grade})`
+    ).join('\n');
+
+    const summary = `Aggregate (Best 6): ${student.bestSixAggregate}\nCategory: ${student.category}\nRemark: ${student.overallRemark}`;
+
+    return `${header}\n\n${studentInfo}\n\nSUBJECT RESULTS:\n${subjects}\n\nSUMMARY:\n${summary}`;
+  };
+
+  const handleWhatsAppShare = () => {
+    const text = generateShareText();
+    // WhatsApp formatting: *bold*
+    const formattedText = text
+      .replace(settings.schoolName, `*${settings.schoolName}*`)
+      .replace('SUBJECT RESULTS:', '*SUBJECT RESULTS:*')
+      .replace('SUMMARY:', '*SUMMARY:*');
+      
+    const url = `https://wa.me/?text=${encodeURIComponent(formattedText)}`;
+    window.open(url, '_blank');
+  };
+
+  const handleEmailShare = () => {
+    const text = generateShareText();
+    const subject = `Report Card Results - ${student.name}`;
+    const url = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(text)}`;
+    window.open(url, '_blank'); // Using window.open prevents navigating away in some browsers, or triggers default mail client
+  };
+
   return (
-    <div className="bg-white p-8 max-w-[210mm] mx-auto min-h-[297mm] border border-gray-200 shadow-sm print:shadow-none print:border-none page-break relative">
+    <div className="bg-white p-8 max-w-[210mm] mx-auto min-h-[297mm] border border-gray-200 shadow-sm print:shadow-none print:border-none page-break relative group">
+       {/* Share Buttons - Visible on hover/screen, hidden on print */}
+       <div className="absolute top-2 right-2 flex gap-2 no-print opacity-50 group-hover:opacity-100 transition-opacity">
+          <button 
+            onClick={handleWhatsAppShare}
+            className="bg-green-500 hover:bg-green-600 text-white p-2 rounded-full shadow-lg"
+            title="Share via WhatsApp"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
+          </button>
+          <button 
+            onClick={handleEmailShare}
+            className="bg-blue-500 hover:bg-blue-600 text-white p-2 rounded-full shadow-lg"
+            title="Share via Email"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+          </button>
+       </div>
+
        {/* Header */}
        <div className="text-center border-b-4 border-double border-blue-900 pb-4 mb-4">
           <h1 className="text-3xl font-extrabold text-blue-900 tracking-wider uppercase">
             <EditableField value={settings.schoolName} onChange={(v) => onSettingChange('schoolName', v)} className="text-center font-extrabold" />
           </h1>
+          <div className="flex justify-center gap-4 text-xs font-semibold text-gray-800 mb-1">
+            <div className="flex gap-1">
+               <span>Tel:</span>
+               <EditableField value={settings.schoolContact} onChange={(v) => onSettingChange('schoolContact', v)} placeholder="000-000-0000" />
+            </div>
+            <span>|</span>
+            <div className="flex gap-1">
+               <span>Email:</span>
+               <EditableField value={settings.schoolEmail} onChange={(v) => onSettingChange('schoolEmail', v)} placeholder="school@email.com" />
+            </div>
+          </div>
           <h2 className="text-xl font-bold text-red-700 uppercase mt-1">
             <EditableField value={settings.examTitle} onChange={(v) => onSettingChange('examTitle', v)} className="text-center" />
           </h2>

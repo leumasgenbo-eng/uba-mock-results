@@ -1,6 +1,7 @@
 import React from 'react';
 import { ProcessedStudent, ClassStatistics, GlobalSettings } from '../types';
 import { SUBJECT_LIST } from '../constants';
+import EditableField from './EditableField';
 
 interface MasterSheetProps {
   students: ProcessedStudent[];
@@ -9,7 +10,7 @@ interface MasterSheetProps {
   onSettingChange: (key: keyof GlobalSettings, value: string) => void;
 }
 
-const MasterSheet: React.FC<MasterSheetProps> = ({ students, stats, settings }) => {
+const MasterSheet: React.FC<MasterSheetProps> = ({ students, stats, settings, onSettingChange }) => {
   const getGradeColor = (grade: string) => {
     if (grade === 'A1') return 'bg-green-100 text-green-800';
     if (grade === 'B2' || grade === 'B3') return 'bg-blue-100 text-blue-800';
@@ -29,8 +30,23 @@ const MasterSheet: React.FC<MasterSheetProps> = ({ students, stats, settings }) 
   return (
     <div className="bg-white p-4 print:p-0 min-h-screen">
       <div className="text-center mb-6">
-        <h1 className="text-3xl font-bold uppercase">{settings.schoolName}</h1>
-        <h2 className="text-xl font-semibold uppercase text-gray-700">{settings.examTitle}</h2>
+        <h1 className="text-3xl font-bold uppercase">
+          <EditableField value={settings.schoolName} onChange={(v) => onSettingChange('schoolName', v)} className="text-center" />
+        </h1>
+        <div className="flex justify-center gap-4 text-xs font-semibold text-gray-600 mb-2">
+            <div className="flex gap-1">
+               <span>Tel:</span>
+               <EditableField value={settings.schoolContact} onChange={(v) => onSettingChange('schoolContact', v)} placeholder="000-000-0000" />
+            </div>
+            <span>|</span>
+            <div className="flex gap-1">
+               <span>Email:</span>
+               <EditableField value={settings.schoolEmail} onChange={(v) => onSettingChange('schoolEmail', v)} placeholder="school@email.com" />
+            </div>
+          </div>
+        <h2 className="text-xl font-semibold uppercase text-gray-700">
+           <EditableField value={settings.examTitle} onChange={(v) => onSettingChange('examTitle', v)} className="text-center" />
+        </h2>
         <h3 className="text-lg">MASTER BROAD SHEET</h3>
       </div>
 
@@ -185,7 +201,9 @@ const MasterSheet: React.FC<MasterSheetProps> = ({ students, stats, settings }) 
           <div className="h-16 mb-2 flex justify-end items-end">
              <div className="border-b border-black w-3/4"></div>
           </div>
-          <p className="font-bold uppercase">{settings.headTeacherName}</p>
+          <p className="font-bold uppercase">
+            <EditableField value={settings.headTeacherName} onChange={(v) => onSettingChange('headTeacherName', v)} className="text-right font-bold uppercase w-full" />
+          </p>
           <p className="text-sm">Signature & Stamp</p>
         </div>
       </div>

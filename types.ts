@@ -46,4 +46,6 @@ export interface GlobalSettings {
   endDate: string;
   headTeacherName: string;
   reportDate: string;
+  schoolContact: string;
+  schoolEmail: string;
 }
